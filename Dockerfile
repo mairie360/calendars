@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
-WORKDIR /usr/src/calendars-web
+WORKDIR /usr/src/calendars
 
 # Copy the package files
 COPY package.json package-lock.json ./
@@ -25,10 +25,10 @@ COPY . .
 RUN npm run build
 
 # Create non-root user and group
-RUN groupadd --system calendars-web && useradd --no-log-init --system -g calendars-web calendars-web
+RUN groupadd --system calendars && useradd --no-log-init --system -g calendars calendars
 
 # Set permissions
-USER calendars-web
+USER calendars
 
 # Set entrypoint
 ENTRYPOINT ["/usr/local/bin/npm"]

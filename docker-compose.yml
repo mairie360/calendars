@@ -87,7 +87,7 @@ services:
       timeout: 5s
       retries: 5
 
-  calendars-web:
+  calendars:
     build:
       context: .
       dockerfile: Dockerfile

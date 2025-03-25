@@ -1,6 +1,6 @@
-# calendars-web
+# Calendars
 
-The web service for Calendars.
+The Calendars's module.
 
 ## Getting Started
 

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Calendars",
-  description: "The web service for Calendars",
+  description: "The Calendars's module.",
 };
 
 export default function RootLayout({
