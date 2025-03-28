@@ -3,13 +3,15 @@ volumes:
   redis-data:
 
 networks:
-  default:
+  backend:
+  frontend:
 
 services:
   postgres:
     image: postgres:17.4-bookworm
     restart: always
     environment:
+      - POSTGRES_ROOT_PASSWORD=root
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     expose:
@@ -18,7 +20,7 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - default
+      - backend
     healthcheck:
       test: ["CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres"]
       interval: 10s
@@ -33,56 +35,33 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - default
+      - backend
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  core-api:
-    image: ghcr.io/mairie360/core-api:latest
-    pull_policy: always
+  core:
+    image: ghcr.io/mairie360/core:latest
     restart: always
     environment:
-      BINDING_ADDRESS: "0.0.0.0"
-      BINDING_PORT: 3000
+      HOSTNAME: "0.0.0.0"
+      PORT: 3000
       POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/core
       REDIS_URL: redis://redis:6379
     expose:
       - "3000"
     networks:
-      - default
+      - backend
+      - frontend
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  calendars-api:
-    image: ghcr.io/mairie360/calendars-api:latest
-    pull_policy: always
-    restart: always
-    environment:
-      BINDING_ADDRESS: "0.0.0.0"
-      BINDING_PORT: 3000
-      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/calendars
-      REDIS_URL: redis://redis:6379
-      CORE_API_URL: http://core-api:3000
-    expose:
-      - "3000"
-    networks:
-      - default
-    depends_on:
-      core-api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -91,18 +70,37 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    pull_policy: always
     restart: always
     environment:
-      API_URL: http://calendars-api:3000
-    ports:
-      - "3000:3000"
+      HOSTNAME: "0.0.0.0"
+      PORT: 3000
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/calendars
+      REDIS_URL: redis://redis:6379
+      CORE_PUBLIC_URL: http://development.mairie360.fr
+    expose:
+      - "3000"
     networks:
-      - default
+      - backend
+      - frontend
     depends_on:
-      calendars-api:
+      core:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  nginx:
+    image: nginx:1.27.4-bookworm
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    networks:
+      - frontend
+    depends_on:
+      calendars:
+        condition: service_healthy
