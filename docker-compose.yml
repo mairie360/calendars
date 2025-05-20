@@ -25,7 +25,6 @@ x-healthcheck: &healthcheck
   retries: 5
 
 x-service: &service-template
-  image: ghcr.io/mairie360/service_name:latest
   pull_policy: always
   restart: always
   expose:
@@ -110,13 +109,7 @@ services:
     networks:
       - frontend
     depends_on:
-      files:
+      core:
         condition: service_healthy
       calendars:
-        condition: service_healthy
-      emails:
-        condition: service_healthy
-      projects:
-        condition: service_healthy
-      messages:
         condition: service_healthy
